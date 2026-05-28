@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+
+# Supabase local dev artifacts
+supabase/.branches/
+supabase/.temp/
+.DS_Store

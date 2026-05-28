@@ -1,0 +1,20 @@
+{
+  "name": "siteops-buildform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SiteOps BuildForm — platform layer (forms engine, submissions, permissions, audit) for the SiteOps product suite.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "db:reset": "supabase db reset",
+    "db:push": "supabase db push"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
