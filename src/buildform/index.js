@@ -4,5 +4,5 @@
 //   import { renderForm, submitForm, signSubmission } from 'siteops-buildform';
 
 export { renderForm } from './render.js';
-export { submitForm, signSubmission } from './submit.js';
+export { submitForm, signSubmission, reviewSubmission, unlockSubmission } from './submit.js';
 export { parseSchema, validate, FIELD_TYPES } from './schema.js';

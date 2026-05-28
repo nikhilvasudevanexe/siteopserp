@@ -20,7 +20,7 @@ export async function formEditor(container, formId) {
     permissions: {
       create: ['admin', 'manager'], read: ['admin', 'manager', 'staff'],
       submit: ['admin', 'manager', 'staff', 'crew'], sign: ['admin', 'manager'],
-      modify_after_sign: ['admin'],
+      modify_after_sign: ['admin'], read_scope: 'all',
     },
   };
 

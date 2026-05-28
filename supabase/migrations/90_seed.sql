@@ -41,7 +41,7 @@ values (
 on conflict (id) do nothing;
 
 -- Real First Civil use case: site induction form.
-insert into public.forms (id, organisation_id, slug, name, description, status, created_by, schema)
+insert into public.forms (id, organisation_id, slug, name, description, status, created_by, permissions, schema)
 values (
   '33333333-3333-3333-3333-333333333333',
   '11111111-1111-1111-1111-111111111111',
@@ -50,6 +50,8 @@ values (
   'Mandatory induction completed by every worker before starting on site.',
   'published',
   '22222222-2222-2222-2222-222222222222',
+  -- Inductions are sensitive: crew may submit and read their OWN only.
+  '{"create":["admin","manager"],"read":["admin","manager","staff"],"submit":["admin","manager","staff","crew"],"sign":["admin","manager"],"modify_after_sign":["admin"],"read_scope":"own"}'::jsonb,
   $${
     "version": 1,
     "fields": [

@@ -1,5 +1,7 @@
 import { el, clear } from '../lib/dom.js';
 import { supabase, STORAGE_BUCKET } from '../lib/supabase.js';
+import { signSubmission, reviewSubmission, unlockSubmission } from '../buildform/submit.js';
+import { getCurrentUser } from '../lib/auth.js';
 import { errorBox } from './forms-list.js';
 
 // Table of submissions for one form.
@@ -38,8 +40,10 @@ export async function submissionsView(container, formId) {
 // event so reads are auditable (acceptance criterion).
 export async function submissionDetail(container, submissionId) {
   const { data: sub, error } = await supabase
-    .from('submissions').select('*, forms(name, schema)').eq('id', submissionId).single();
+    .from('submissions').select('*, forms(name, schema, permissions)').eq('id', submissionId).single();
   if (error) { clear(container).append(errorBox(error)); return; }
+
+  const me = await getCurrentUser();
 
   await supabase.rpc('log_event', {
     p_action: 'submission.viewed', p_target_table: 'submissions',
@@ -55,6 +59,8 @@ export async function submissionDetail(container, submissionId) {
     el('td', {}, renderValue(f, sub.data[f.key], atts || [])),
   ]));
 
+  const status = el('div', { class: 'form-status' });
+
   clear(container).append(
     el('h1', {}, `Submission ${sub.id.slice(0, 8)}`),
     el('div', { class: 'toolbar' }, [
@@ -64,7 +70,50 @@ export async function submissionDetail(container, submissionId) {
     ]),
     el('table', { class: 'table table-kv' }, el('tbody', {}, fieldRows)),
     el('p', { class: 'muted' }, `Form version at submission: v${sub.form_version}`),
+    lifecycleActions(container, sub, me, status),
+    status,
   );
+}
+
+// Action bar driven by the form's permission config. The RPCs re-check
+// permission server-side; these buttons only avoid showing actions the role
+// plainly can't take. On success we re-render the detail view.
+function lifecycleActions(container, sub, me, status) {
+  const perms = sub.forms.permissions || {};
+  const can = (action) => (perms[action] || []).includes(me?.role);
+  const buttons = [];
+
+  const run = (fn) => async () => {
+    status.replaceChildren();
+    try {
+      await fn();
+      submissionDetail(container, sub.id);
+    } catch (e) {
+      status.append(errorBox(e));
+    }
+  };
+
+  if (!sub.locked && can('sign')) {
+    if (sub.status !== 'approved') {
+      buttons.push(el('button', { class: 'btn', onclick: run(() => reviewSubmission(sub.id, 'approved')) }, 'Approve'));
+    }
+    if (sub.status !== 'rejected') {
+      buttons.push(el('button', { class: 'btn', onclick: run(() => reviewSubmission(sub.id, 'rejected')) }, 'Reject'));
+    }
+    buttons.push(el('button', { class: 'btn btn-primary', onclick: run(() => signSubmission(sub.id)) }, 'Sign & lock'));
+  }
+  if (sub.locked && can('modify_after_sign')) {
+    buttons.push(el('button', {
+      class: 'btn-secondary',
+      onclick: run(() => {
+        const reason = window.prompt('Reason for unlocking this signed submission?');
+        if (reason == null) throw new Error('Unlock cancelled');
+        return unlockSubmission(sub.id, reason);
+      }),
+    }, 'Unlock'));
+  }
+
+  return buttons.length ? el('div', { class: 'toolbar' }, buttons) : null;
 }
 
 function renderValue(field, value, attachments) {

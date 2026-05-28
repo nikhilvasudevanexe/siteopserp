@@ -80,6 +80,27 @@ Lookup (org-scoped table, read via RLS):
 under `<org>/<submission>/<field>-<rand>.<ext>` and records an `attachments`
 row per file.
 
+## Permissions
+
+`forms.permissions` controls who can do what, enforced by RLS / lifecycle RPCs:
+
+```json
+{
+  "create": ["admin", "manager"],
+  "read": ["admin", "manager", "staff"],
+  "submit": ["admin", "manager", "staff", "crew"],
+  "sign": ["admin", "manager"],
+  "modify_after_sign": ["admin"],
+  "read_scope": "all"
+}
+```
+
+- `read_scope` (optional, default `"all"`) — set to `"own"` for sensitive forms
+  so that even roles in `read` see only the submissions they submitted. The
+  submitter can always read their own submission regardless.
+- `sign` roles can approve/reject/sign via the lifecycle RPCs. `modify_after_sign`
+  roles can unlock a signed submission for correction.
+
 ## Not yet (v2)
 
 Conditional fields, computed fields, and repeatable groups are intentionally not

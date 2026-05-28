@@ -79,18 +79,31 @@ async function uploadAttachment(orgId, submissionId, userId, fieldKey, file) {
   if (rowErr) throw rowErr;
 }
 
-// Sign a submission and lock it. modify_after_sign permission governs any later
-// change; RLS + the locked trigger enforce immutability after this.
-export async function signSubmission(submissionId) {
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth?.user) throw new Error('Not signed in');
+// Lifecycle transitions go through SECURITY DEFINER RPCs that check the form's
+// permission config and guard against status/lock tampering. The frontend never
+// flips status, locked, or signature fields directly.
 
-  const { data, error } = await supabase
-    .from('submissions')
-    .update({ status: 'signed', signed_at: new Date().toISOString(), signed_by: auth.user.id, locked: true })
-    .eq('id', submissionId)
-    .select()
-    .single();
+// Approve or reject a submission. Requires the form's `sign` permission.
+export async function reviewSubmission(submissionId, status) {
+  const { data, error } = await supabase.rpc('review_submission', {
+    p_id: submissionId, p_status: status,
+  });
+  if (error) throw error;
+  return data;
+}
+
+// Sign and lock a submission. Requires the form's `sign` permission.
+export async function signSubmission(submissionId) {
+  const { data, error } = await supabase.rpc('sign_submission', { p_id: submissionId });
+  if (error) throw error;
+  return data;
+}
+
+// Unlock a signed submission for correction. Requires `modify_after_sign`.
+export async function unlockSubmission(submissionId, reason) {
+  const { data, error } = await supabase.rpc('unlock_submission', {
+    p_id: submissionId, p_reason: reason,
+  });
   if (error) throw error;
   return data;
 }
