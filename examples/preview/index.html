@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BuildForm — static preview</title>
+    <!-- Uses the real admin stylesheet so this looks like the live app. -->
+    <link rel="stylesheet" href="../../src/styles/main.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <span class="brand">SiteOps <strong>BuildForm</strong></span>
+      <span class="muted">static preview · no backend</span>
+    </header>
+    <main id="app" class="app"></main>
+
+    <!--
+      Standalone preview ONLY. It mirrors the markup/classes that
+      src/buildform/render.js + fields/* produce, so you can eyeball the UI
+      without npm/Supabase. The live app uses the real renderer; this file
+      duplicates nothing the app ships with at runtime.
+    -->
+    <script type="module">
+      // The seeded First Civil Site Induction schema (see 90_seed.sql).
+      const schema = {
+        ui: { submit_label: 'Complete induction' },
+        fields: [
+          { key: 'worker_name', type: 'text', label: 'Worker full name', required: true },
+          { key: 'company', type: 'text', label: 'Company / subcontractor', required: true },
+          { key: 'induction_date', type: 'date', label: 'Induction date', required: true },
+          { key: 'white_card', type: 'checkbox', label: 'Holds a valid White Card', required: true },
+          { key: 'swms_reviewed', type: 'checkbox', label: 'SWMS reviewed and understood', required: true },
+          { key: 'emergency_contact', type: 'text', label: 'Emergency contact (name & phone)', required: true },
+          { key: 'notes', type: 'textarea', label: 'Notes', required: false },
+          { key: 'id_photo', type: 'image', label: 'Photo of ID / White Card', required: true, max_count: 2 },
+          { key: 'signature', type: 'signature', label: 'Worker signature', required: true },
+        ],
+      };
+
+      const el = (tag, attrs = {}, kids = []) => {
+        const n = document.createElement(tag);
+        for (const [k, v] of Object.entries(attrs)) {
+          if (k === 'class') n.className = v;
+          else if (k === 'html') n.innerHTML = v;
+          else n.setAttribute(k, v);
+        }
+        for (const c of [].concat(kids)) n.append(c instanceof Node ? c : document.createTextNode(c));
+        return n;
+      };
+      const label = (f) => el('label', { class: 'field-label' },
+        [f.label, ...(f.required ? [el('span', { class: 'req' }, ' *')] : [])]);
+
+      function field(f) {
+        const wrap = el('div', { class: 'field' });
+        if (f.type === 'checkbox') {
+          return el('div', { class: 'field field-checkbox' },
+            el('label', { class: 'field-label-inline' },
+              [el('input', { type: 'checkbox' }), ' ', f.label, ...(f.required ? [el('span', { class: 'req' }, ' *')] : [])]));
+        }
+        wrap.append(label(f));
+        if (f.type === 'textarea') wrap.append(el('textarea', { class: 'input', rows: '4' }));
+        else if (f.type === 'date') wrap.append(el('input', { class: 'input', type: 'date' }));
+        else if (f.type === 'image') {
+          wrap.append(el('input', { class: 'input', type: 'file', accept: 'image/*', multiple: '' }));
+          wrap.append(el('div', { class: 'upload-preview' }));
+        } else if (f.type === 'signature') {
+          wrap.append(el('canvas', { class: 'signature-pad', width: '600', height: '200' }));
+          wrap.append(el('div', { class: 'signature-actions' }, el('button', { class: 'btn-secondary', type: 'button' }, 'Clear')));
+        } else {
+          wrap.append(el('input', { class: 'input', type: 'text' }));
+        }
+        return wrap;
+      }
+
+      const app = document.getElementById('app');
+      app.append(el('h1', {}, 'Site Induction'));
+      app.append(el('div', { class: 'toolbar' }, el('a', { class: 'btn-link', href: '#' }, '← Forms')));
+      const form = el('form', { class: 'bf-form' });
+      schema.fields.forEach((f) => form.append(field(f)));
+      app.append(form);
+      app.append(el('div', { class: 'toolbar' }, el('button', { class: 'btn btn-primary' }, schema.ui.submit_label)));
+
+      // Make the signature canvas actually draw, so it feels real.
+      const canvas = document.querySelector('.signature-pad');
+      const ctx = canvas.getContext('2d');
+      ctx.lineWidth = 2; ctx.lineCap = 'round';
+      let drawing = false;
+      const pos = (e) => { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * (canvas.width / r.width), y: (e.clientY - r.top) * (canvas.height / r.height) }; };
+      canvas.addEventListener('mousedown', (e) => { drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+      canvas.addEventListener('mousemove', (e) => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+      window.addEventListener('mouseup', () => { drawing = false; });
+      document.querySelector('.signature-actions button').onclick = () => ctx.clearRect(0, 0, canvas.width, canvas.height);
+    </script>
+  </body>
+</html>
