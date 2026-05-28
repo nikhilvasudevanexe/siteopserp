@@ -6,11 +6,11 @@ import { toast } from "../components/Toast.jsx";
 import { ForemanFeed } from "./ForemanFeed.jsx";
 import { EntryDetailDrawer } from "./EntryDetailDrawer.jsx";
 
-export function ForemanMode({ onBack, onOpenVault }) {
+export function ForemanMode({ onBack, onOpenVault, scale = 1 }) {
   const [selected, setSelected] = useState(null);
 
   return (
-    <PhoneShell onBack={onBack} context="Every entry from every site, newest first. Filter by site or category, drill into any entry's chain proof and witnesses, and jump to the desktop Evidence Vault.">
+    <PhoneShell onBack={onBack} scale={scale} context="Every entry from every site, newest first. Filter by site or category, drill into any entry's chain proof and witnesses, and jump to the desktop Evidence Vault.">
       <ForemanFeed chain={CHAIN} onOpenVault={onOpenVault} onSelect={setSelected} />
       {selected && (
         <EntryDetailDrawer

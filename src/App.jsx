@@ -1,23 +1,33 @@
 // ════════════════════════════════════════════════════════════════
-// ROOT — intro cover + mode switcher (Field / Foreman / Vault)
+// ROOT — intro cover + mode switcher (Field / Foreman / Vault) + tweaks
 // ════════════════════════════════════════════════════════════════
-import { useState } from "react";
 import { BB } from "./theme.js";
 import { CHAIN } from "./data.js";
 import { Mono } from "./components/atoms.jsx";
 import { ToastHost } from "./components/Toast.jsx";
+import {
+  useTweaks, TweaksPanel, TweakSection, TweakSelect, TweakColor,
+  TweakRadio, TweakToggle, TweakSlider, TweakButton,
+} from "./components/Tweaks.jsx";
 import { FieldMode } from "./field/FieldMode.jsx";
 import { ForemanMode } from "./foreman/ForemanMode.jsx";
 import { EvidenceVault } from "./vault/EvidenceVault.jsx";
 
-const ACCENT = BB.orange;
+const TWEAK_DEFAULTS = {
+  mode: "intro",
+  accent: "#F5A623",
+  chainBadge: "visible",
+  recorderAlwaysOn: true,
+  showWitnesses: true,
+  phoneScale: 1,
+};
 
-function IntroCover({ onPick }) {
+function IntroCover({ onPick, accent }) {
   return (
     <div style={{
       minHeight: "100vh", display: "flex", flexDirection: "column",
       alignItems: "center", justifyContent: "center", padding: 40, gap: 36,
-      background: `radial-gradient(circle at 50% 0%, ${ACCENT}10 0%, ${BB.bg} 60%)`,
+      background: `radial-gradient(circle at 50% 0%, ${accent}10 0%, ${BB.bg} 60%)`,
     }}>
       <div style={{ textAlign: "center", maxWidth: 720 }}>
         <Mono style={{
@@ -28,7 +38,7 @@ function IntroCover({ onPick }) {
           fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 64, fontWeight: 800,
           letterSpacing: -2, lineHeight: 1, marginBottom: 14,
         }}>
-          SITE<span style={{ color: ACCENT }}>OPS</span>
+          SITE<span style={{ color: accent }}>OPS</span>
         </div>
         <div style={{ fontSize: 18, color: BB.text2, lineHeight: 1.5, marginBottom: 8, fontWeight: 500 }}>
           The shift recorder for construction. Always on. Tamper-proof.
@@ -84,23 +94,74 @@ function IntroCover({ onPick }) {
 }
 
 export function App() {
-  const [mode, setMode] = useState("intro");
-  const [vaultReturn, setVaultReturn] = useState("intro");
+  const [tweak, set] = useTweaks(TWEAK_DEFAULTS);
+  const accent = tweak.accent || BB.orange;
 
   return (
     <>
-      {mode === "intro"   && <IntroCover onPick={setMode} />}
-      {mode === "field"   && <FieldMode onBack={() => setMode("intro")} />}
-      {mode === "foreman" && <ForemanMode onBack={() => setMode("intro")} onOpenVault={() => { setVaultReturn("foreman"); setMode("vault"); }} />}
-      {mode === "vault"   && (
+      {tweak.mode === "intro"   && <IntroCover onPick={m => set("mode", m)} accent={accent} />}
+      {tweak.mode === "field"   && <FieldMode onBack={() => set("mode", "intro")} scale={tweak.phoneScale} />}
+      {tweak.mode === "foreman" && <ForemanMode onBack={() => set("mode", "intro")} scale={tweak.phoneScale} onOpenVault={() => set("mode", "vault")} />}
+      {tweak.mode === "vault"   && (
         <EvidenceVault
           chain={CHAIN}
-          onBackToField={() => setMode(vaultReturn)}
-          backLabel={vaultReturn === "foreman" ? "← Foreman" : "← Intro"}
-          accentColor={ACCENT}
+          onBackToField={() => set("mode", "intro")}
+          backLabel="← Intro"
+          accentColor={accent}
+          chainVisibility={tweak.chainBadge}
         />
       )}
+
       <ToastHost />
+
+      <TweaksPanel title="Tweaks · SiteOps">
+        <TweakSection label="View">
+          <TweakSelect
+            label="Mode"
+            value={tweak.mode}
+            options={[
+              { value: "intro",   label: "Intro" },
+              { value: "field",   label: "Field recorder" },
+              { value: "foreman", label: "Foreman feed" },
+              { value: "vault",   label: "Evidence Vault" },
+            ]}
+            onChange={v => set("mode", v)}
+          />
+        </TweakSection>
+
+        <TweakSection label="Accent">
+          <TweakColor
+            label="Color"
+            value={tweak.accent}
+            options={["#F5A623", "#FF3344", "#22D3EE", "#3BD17F", "#FACC15", "#A855F7"]}
+            onChange={v => set("accent", v)}
+          />
+        </TweakSection>
+
+        <TweakSection label="Chain badges">
+          <TweakRadio
+            label="Visibility"
+            value={tweak.chainBadge}
+            options={["hidden", "subtle", "visible"]}
+            onChange={v => set("chainBadge", v)}
+          />
+        </TweakSection>
+
+        <TweakSection label="Phone">
+          <TweakSlider label="Scale" value={tweak.phoneScale} min={0.6} max={1.2} step={0.05} unit="×" onChange={v => set("phoneScale", v)} />
+        </TweakSection>
+
+        <TweakSection label="Recorder">
+          <TweakToggle label="Always-on" value={tweak.recorderAlwaysOn} onChange={v => set("recorderAlwaysOn", v)} />
+          <TweakToggle label="Auto witnesses" value={tweak.showWitnesses} onChange={v => set("showWitnesses", v)} />
+        </TweakSection>
+
+        <TweakSection label="Jump to">
+          <TweakButton label="Evidence Vault →" onClick={() => set("mode", "vault")} />
+          <TweakButton label="Field recorder →" onClick={() => set("mode", "field")} secondary />
+          <TweakButton label="Foreman feed →" onClick={() => set("mode", "foreman")} secondary />
+        </TweakSection>
+      </TweaksPanel>
     </>
   );
 }

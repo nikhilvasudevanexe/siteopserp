@@ -13,7 +13,7 @@ import {
 
 const SITE = "norwest";
 
-export function FieldMode({ onBack }) {
+export function FieldMode({ onBack, scale = 1 }) {
   const [chain, setChain] = useState(CHAIN);
   const [machine, setMachine] = useState(null);
   const [showNFC, setShowNFC] = useState(false);
@@ -41,7 +41,7 @@ export function FieldMode({ onBack }) {
   const recentSite = chain.filter(e => e.site === SITE);
 
   return (
-    <PhoneShell onBack={onBack} context="The field recorder runs always-on. Geofence, NFC machine pairing and nearby-crew witnesses are auto-attached to every capture, which is hashed and sealed into the chain the instant it's recorded.">
+    <PhoneShell onBack={onBack} scale={scale} context="The field recorder runs always-on. Geofence, NFC machine pairing and nearby-crew witnesses are auto-attached to every capture, which is hashed and sealed into the chain the instant it's recorded.">
       <FieldHUD
         site={SITE}
         machine={machine}
